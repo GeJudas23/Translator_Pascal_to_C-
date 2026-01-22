@@ -45,8 +45,7 @@ def translate_file(input_path: str, output_path: str = None, verbose: bool = Fal
         
         if verbose:
             print(f"Найдено токенов: {len(tokens)}")
-            print("\nПервые 20 токенов:")
-            for token in tokens[:20]:
+            for token in tokens:
                 print(f"  {token}")
             print()
         
