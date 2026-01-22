@@ -4,8 +4,8 @@
 """
 
 from typing import List, Optional
-from lexer import Token, TokenType, Lexer
-from ast_nodes import *
+from src.lexer import Token, TokenType, Lexer
+from src.ast_nodes import *
 
 
 class ParserError(Exception):
