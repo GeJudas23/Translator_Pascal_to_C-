@@ -111,6 +111,12 @@ class CodeGenerator:
             self.emit_line(f"void {subprogram.name}({params}) {{")
             self.indent_level += 1
 
+            # Регистрируем информацию об массивах-параметрах
+            for param in subprogram.parameters:
+                if isinstance(param.param_type, ArrayType):
+                    for name in param.names:
+                        self.array_info[name] = param.param_type.dimensions
+
             for var_decl in subprogram.variables:
                 self.generate_var_declaration(var_decl)
 
@@ -127,6 +133,12 @@ class CodeGenerator:
             params = self.generate_parameters(subprogram.parameters)
             self.emit_line(f"{return_type} {subprogram.name}({params}) {{")
             self.indent_level += 1
+
+            # Регистрируем информацию об массивах-параметрах
+            for param in subprogram.parameters:
+                if isinstance(param.param_type, ArrayType):
+                    for name in param.names:
+                        self.array_info[name] = param.param_type.dimensions
 
             # Переменная для возврата значения
             self.emit_line(f"{return_type} {subprogram.name}_result;")
@@ -148,12 +160,18 @@ class CodeGenerator:
     def generate_parameters(self, parameters: List[Parameter]) -> str:
         params = []
         for param in parameters:
-            param_type = self.convert_type(param.param_type)
-            for name in param.names:
-                if param.by_reference:
-                    params.append(f"{param_type}& {name}")
-                else:
-                    params.append(f"{param_type} {name}")
+            # Обработка массивов отдельно
+            if isinstance(param.param_type, ArrayType):
+                element_type = self.convert_type(param.param_type.element_type)
+                for name in param.names:
+                    params.append(f"{element_type} {name}[]")
+            else:
+                param_type = self.convert_type(param.param_type)
+                for name in param.names:
+                    if param.by_reference:
+                        params.append(f"{param_type}& {name}")
+                    else:
+                        params.append(f"{param_type} {name}")
         return ", ".join(params)
 
     def generate_var_declaration(self, var_decl: VarDeclaration):
@@ -212,7 +230,7 @@ class CodeGenerator:
 
     def generate_statement(self, stmt: Statement, function_name=None):
         if isinstance(stmt, CompoundStatement):
-            self.generate_compound_statement(stmt)
+            self.generate_compound_statement(stmt, function_name=function_name)
 
         elif isinstance(stmt, AssignmentStatement):
             var_code = self.generate_variable(stmt.variable)
@@ -310,13 +328,23 @@ class CodeGenerator:
         if call.name in ("write", "writeln"):
             args = " << ".join(self.generate_expression(arg) for arg in call.arguments)
             if call.name == "writeln":
-                self.emit_line(f"cout << {args} << endl;")
+                if args:
+                    self.emit_line(f"cout << {args} << endl;")
+                else:
+                    self.emit_line(f"cout << endl;")
             else:
-                self.emit_line(f"cout << {args};")
+                if args:
+                    self.emit_line(f"cout << {args};")
 
         elif call.name in ("read", "readln"):
             args = " >> ".join(self.generate_expression(arg) for arg in call.arguments)
             self.emit_line(f"cin >> {args};")
+
+        elif call.name == "break":
+            self.emit_line("break;")
+
+        elif call.name == "continue":
+            self.emit_line("continue;")
 
         else:
             args = ", ".join(self.generate_expression(arg) for arg in call.arguments)

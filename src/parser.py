@@ -251,6 +251,11 @@ class Parser:
         if self.match(TokenType.CASE):
             return self.parse_case_statement()
 
+        if self.match(
+            TokenType.WRITE, TokenType.WRITELN, TokenType.READ, TokenType.READLN
+        ):
+            return self.parse_builtin_procedure()
+
         if self.match(TokenType.IDENTIFIER):
             return self.parse_assignment_or_call()
 
@@ -343,6 +348,24 @@ class Parser:
         statement = self.parse_statement()
 
         return (values, statement)
+
+    def parse_builtin_procedure(self) -> Statement:
+        proc_name = self.current_token().value
+        self.advance()
+
+        arguments = []
+        if self.match(TokenType.LPAREN):
+            self.advance()
+            if not self.match(TokenType.RPAREN):
+                arguments.append(self.parse_expression())
+
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    arguments.append(self.parse_expression())
+
+            self.expect(TokenType.RPAREN)
+
+        return ProcedureCall(proc_name, arguments)
 
     def parse_assignment_or_call(self) -> Statement:
         name = self.expect(TokenType.IDENTIFIER).value

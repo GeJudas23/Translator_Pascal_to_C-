@@ -10,6 +10,11 @@ from src.lexer import Lexer, LexerError
 from src.parser import Parser, ParserError
 from src.codegen import CodeGenerator
 
+# Установка UTF-8 кодировки для консоли на Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 def translate_file(input_path: str, output_path: str = None, verbose: bool = False):
     """
